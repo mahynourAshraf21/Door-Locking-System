@@ -1,0 +1,46 @@
+02:19:48 **** Incremental Build of configuration Debug for project CONTROL_ECU ****
+make all 
+Building file: ../main.c
+Invoking: AVR Compiler
+avr-gcc -Wall -g2 -gstabs -O0 -fpack-struct -fshort-enums -ffunction-sections -fdata-sections -std=gnu99 -funsigned-char -funsigned-bitfields -mmcu=atmega32 -DF_CPU=8000000UL -MMD -MP -MF"main.d" -MT"main.o" -c -o "main.o" "../main.c"
+In file included from ../main.c:6:
+c:/winavr-20100110/lib/gcc/../../avr/include/util/delay.h:90:3: warning: #warning "Compiler optimizations disabled; functions from <util/delay.h> won't work as designed"
+../main.c: In function 'creatPassword':
+../main.c:26: warning: pointer targets in passing argument 1 of 'strcmp' differ in signedness
+../main.c:26: warning: pointer targets in passing argument 2 of 'strcmp' differ in signedness
+../main.c: In function 'controlBuzzerTiming_1min':
+../main.c:76: warning: implicit declaration of function 'Buzzer_off'
+../main.c: In function 'main':
+../main.c:91: warning: implicit declaration of function 'Buzzer_init'
+../main.c:121: warning: pointer targets in passing argument 1 of 'strcmp' differ in signedness
+../main.c:121: warning: pointer targets in passing argument 2 of 'strcmp' differ in signedness
+../main.c:150: warning: implicit declaration of function 'Buzzer_on'
+Finished building: ../main.c
+ 
+Building target: CONTROL_ECU.elf
+Invoking: AVR C Linker
+avr-gcc -Wl,-Map,CONTROL_ECU.map -mmcu=atmega32 -o "CONTROL_ECU.elf"  ./DcMotor.o ./buzzer.o ./external_eeprom.o ./gpio.o ./main.o ./pwm.o ./timer.o ./twi.o ./uart.o   
+Finished building target: CONTROL_ECU.elf
+ 
+Invoking: AVR Create Extended Listing
+avr-objdump -h -S CONTROL_ECU.elf  >"CONTROL_ECU.lss"
+Finished building: CONTROL_ECU.lss
+ 
+Invoking: Print Size
+avr-size --format=avr --mcu=atmega32 CONTROL_ECU.elf
+AVR Memory Usage
+----------------
+Device: atmega32
+
+Program:    8262 bytes (25.2% Full)
+(.text + .data + .bootloader)
+
+Data:         62 bytes (3.0% Full)
+(.data + .bss + .noinit)
+
+
+Finished building: sizedummy
+ 
+
+02:19:49 Build Finished. 0 errors, 8 warnings. (took 1s.202ms)
+

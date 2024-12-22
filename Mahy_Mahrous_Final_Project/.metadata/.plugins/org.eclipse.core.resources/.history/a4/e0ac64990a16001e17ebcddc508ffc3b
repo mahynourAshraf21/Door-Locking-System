@@ -1,0 +1,161 @@
+#define F_CPU 8000000UL
+#define MC2_READY 0x10
+#define MC1_READY 0x20
+//#define address 0b00000010
+#include "twi.h"
+#include <util/delay.h> /* For the delay functions */
+#include "uart.h"
+#include "gpio.h"
+#include "std_types.h"
+#include <string.h>
+#include "DcMotor.h"
+#include "timer.h"
+#include "mainFunctions.h"
+#include "avr/interrupt.h"
+
+#include "external_eeprom.h"
+#define PASSWORD_SIZE 5
+uint8 password[7], rec_pass1[7], rec_pass2[7], c = 0,i,counter=0,stop=0,a_cw=0,state=0;
+uint8 flag ;
+void creatPassword() {
+	UART_receiveString(rec_pass1);
+
+	UART_receiveString(rec_pass2);
+
+	uint16 k, i;
+	int result = strcmp(rec_pass1, rec_pass2);
+
+	if (result == 0) {
+		k = 0;
+
+		for(i=0;i<PASSWORD_SIZE;i++)
+		{
+			EEPROM_writeByte(0x0012+i, rec_pass1[i]);
+		}
+		flag = 0xff;
+		EEPROM_writeByte(0x0009, 0xff);
+
+	} else
+		k = 1;
+
+
+	_delay_ms(1000);
+}
+
+void controlMotorTiming_15sec(void){
+	counter++;
+	if(counter == 15){ /* 15 seconds */
+		DcMotor_Rotate(STOP, 0);
+
+		state++;
+		counter = 0;
+		if(state == 1){
+			Timer1_setCallBack(controlMotorTiming_3sec);
+		}
+		else if(state == 2){
+			Timer1_deInit();
+
+			DcMotor_Rotate(STOP, 0);
+			state = 0;
+		}
+	}
+}
+
+void controlMotorTiming_3sec(void){
+	counter++;
+	if(counter == 3){ /* 3 seconds */
+		DcMotor_Rotate(A_CW, 100);
+
+		counter = 0;
+		Timer1_setCallBack(controlMotorTiming_15sec);
+	}
+}
+void controlBuzzerTiming_1min(void){
+	counter++;
+	if(counter == 60){
+		Buzzer_off();
+		counter = 0;
+	}
+}
+
+int main(void) {
+	SREG |= (1<<7);
+	TWI_ConfigType twiConfig={0b00000010,BIT_RATE_400_KBS};
+	TWI_init(&twiConfig);
+	DcMotor_Init();
+
+	UART_ConfigType config_ptr = { EIGHT, DISABLED, ONE, BAUD_RATE_9600 };
+
+	UART_init(&config_ptr);
+
+	Buzzer_init();
+
+
+
+	//_delay_ms(150);
+
+	while (UART_recieveByte() != MC1_READY) {
+	}
+	//EEPROM_writeByte(0x0009, 0x00);
+
+	EEPROM_readByte(0x0009, &flag);
+	UART_sendByte(flag);
+	if (flag !=0xff) {
+		creatPassword();
+
+	}
+
+	while (1)
+	{
+		c = 0;
+		uint8 option = UART_recieveByte();
+		while (c < 3)
+		{
+			UART_receiveString(rec_pass2);
+			for(i=0;i<PASSWORD_SIZE;i++)
+			{
+				EEPROM_readByte(0x0012+i, &password[i]);
+			}
+			password[i]='\0';
+
+			uint8 cmp = strcmp(rec_pass2, password);
+			if (cmp == 0)
+			{
+				UART_sendByte(0);
+				switch (option)
+				{
+				case '+':
+					_delay_ms(500);
+					Timer1_ConfigType TimerConfig =  {0,8000,PRESCALER_1024,CTC};
+					Timer1_init(&TimerConfig);
+					Timer1_setCallBack(controlMotorTiming_15sec);
+					DcMotor_Rotate(CW, 100);
+					break;
+				case '-':
+					creatPassword();
+					break;
+				}
+				c = 0;
+				break;
+			}
+			else
+			{
+				if (c < 2)
+				{
+					UART_sendByte(1);
+					c++;
+				}
+				else
+				{
+					Buzzer_on();
+					UART_sendByte(2);
+					Timer1_ConfigType TimerConfig =  {0,8000,PRESCALER_1024,CTC};
+					Timer1_init(&TimerConfig);
+					Timer1_setCallBack(controlMotorTiming_15sec);
+
+				//buzzer
+				}
+			}
+		}
+	}
+}
